@@ -7,3 +7,5 @@ obj/
 ProvidedMaterials/
 
 .vscode/
+
+test_script.sh
