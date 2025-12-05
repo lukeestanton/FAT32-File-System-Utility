@@ -1,143 +1,121 @@
 # FAT32 File System Utility
 
-A user-space shell-like utility capable of interpreting FAT32 file system images. This utility allows users to navigate, read, write, and manipulate files within a FAT32 file system image.
+A user-space shell utility for interpreting and manipulating FAT32 file system images, built in C.
 
-## Group Members
-- **Luke Stanton**: les22
+![C](https://img.shields.io/badge/C-00599C?style=flat&logo=c&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat&logo=linux&logoColor=black)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-## Division of Labor
+## Features
 
-### Part 1: Mounting the Image
-- **Responsibilities**: Mount FAT32 image, parse boot sector, implement `info` and `exit` commands
-- **Assigned to**: Luke Stanton
+- **File System Navigation** - Browse directories with `ls` and `cd` commands
+- **File Operations** - Create, read, write, and delete files
+- **Directory Management** - Create and remove directories with proper `.` and `..` entries
+- **FAT Table Manipulation** - Direct cluster allocation and deallocation
+- **Multi-file Support** - Track up to 10 simultaneously open files with independent offsets
+- **File Seeking** - Random access read/write with `lseek` support
 
-### Part 2: Navigation
-- **Responsibilities**: Implement `cd` and `ls` commands
-- **Assigned to**: Luke Stanton
+## Technical Highlights
 
-### Part 3: Create
-- **Responsibilities**: Implement `mkdir` and `creat` commands
-- **Assigned to**: Luke Stanton
+- **Boot Sector Parsing** - Reads and interprets FAT32 BPB (BIOS Parameter Block)
+- **Cluster Chain Traversal** - Navigates linked clusters for large files/directories
+- **8.3 Filename Handling** - Converts between human-readable and DOS format names
+- **Dual FAT Updates** - Maintains consistency across both FAT copies
+- **Memory-Safe Design** - Proper allocation/deallocation with no memory leaks
 
-### Part 4: Read
-- **Responsibilities**: Implement `open`, `close`, `lsof`, `lseek`, and `read` commands
-- **Assigned to**: Luke Stanton
+## Architecture
 
-### Part 5: Update
-- **Responsibilities**: Implement `write` and `mv` commands
-- **Assigned to**: Luke Stanton
-
-### Part 6: Delete
-- **Responsibilities**: Implement `rm` and `rmdir` commands
-- **Assigned to**: Luke Stanton
-
-## Development Log
-
-### Luke Stanton
-| Date | Description |
-|------|-------------|
-| Nov 25 - Dec 1 | Implemented all core functionality over thanksgiving break: mounting, navigation, file operations, and FAT32 manipulation |
-| Dec 4 | Testing, bug fixes, and error handling improvements |
-| Dec 5 | Final testing on linprog, documentation |
-
-## Group Meetings
-This project was completed individually. Development was done incrementally with regular self-review and testing sessions after each major feature implementation.
-
-## File Listing
 ```
-project3/
-├── src/
-│   ├── main.c        # Main entry point and command dispatcher
-│   ├── fat32.c       # FAT32 core operations
-│   ├── commands.c    # Command implementations
-│   └── lexer.c       # Input tokenization
-│
-├── include/
-│   ├── fat32.h       # FAT32 structures and function declarations
-│   ├── commands.h    # Command function declarations
-│   └── lexer.h       # Lexer function declarations
-│
-├── Makefile
-└── README.md
+src/
+├── main.c        # Shell loop and command dispatcher
+├── fat32.c       # Core FAT32 operations (mount, FAT, clusters)
+├── commands.c    # Command implementations (ls, cd, read, write, etc.)
+└── lexer.c       # Input tokenization
+
+include/
+├── fat32.h       # FAT32 structures and constants
+├── commands.h    # Command function declarations
+└── lexer.h       # Tokenizer interface
 ```
 
-`bin/` and `obj/` directories are created during compilation
+## Building
 
-## How to Compile & Execute
-
-### Requirements
-- **Compiler**: GCC with C99 support
-- **OS**: Linux (tested on linprog)
-
-### Compilation
 ```bash
-make
+make            # Build the executable
+make clean      # Remove build artifacts
 ```
-This builds the executable and place it in `bin/filesys`.
 
-To clean build artifacts:
+## Usage
+
 ```bash
-make clean
+./bin/filesys <fat32_image>
 ```
 
-### Execution
-```bash
-./bin/filesys [FAT32_IMAGE]
+### Example Session
+
+```
+fat32/> ls
+DOCUMENTS
+PHOTOS
+README.TXT
+
+fat32/> cd DOCUMENTS
+fat32/DOCUMENTS> creat NOTES
+fat32/DOCUMENTS> open NOTES -rw
+fat32/DOCUMENTS> write NOTES "Hello, World!"
+fat32/DOCUMENTS> lseek NOTES 0
+fat32/DOCUMENTS> read NOTES 13
+Hello, World!
+fat32/DOCUMENTS> close NOTES
+fat32/DOCUMENTS> exit
 ```
 
-Example:
-```bash
-./bin/filesys fat32.img
-```
-
-### Available Commands
+### Supported Commands
 
 | Command | Description |
 |---------|-------------|
-| `info` | Display file system information |
-| `exit` | Exit program |
-| `cd DIRNAME` | Change current directory to DIRNAME |
+| `info` | Display file system metadata |
 | `ls` | List directory contents |
-| `mkdir DIRNAME` | Create new directory |
-| `creat FILENAME` | Create new empty file |
-| `open FILENAME FLAGS` | Open file (-r, -w, -rw, -wr) |
-| `close FILENAME` | Close a open file |
-| `lsof` | List all open files |
-| `lseek FILENAME OFFSET` | Set file offset for reading/writing |
-| `read FILENAME SIZE` | Read SIZE bytes from file |
-| `write FILENAME "STRING"` | Write STRING to file |
-| `mv SOURCE DEST` | Move/rename a file or directory |
-| `rm FILENAME` | Delete a file |
-| `rmdir DIRNAME` | Remove an empty directory |
+| `cd <dir>` | Change directory |
+| `mkdir <dir>` | Create directory |
+| `creat <file>` | Create empty file |
+| `open <file> <mode>` | Open file (-r, -w, -rw) |
+| `close <file>` | Close file |
+| `read <file> <size>` | Read bytes from file |
+| `write <file> "text"` | Write to file |
+| `lseek <file> <offset>` | Set file offset |
+| `lsof` | List open files |
+| `mv <src> <dest>` | Move/rename |
+| `rm <file>` | Delete file |
+| `rmdir <dir>` | Remove empty directory |
+| `exit` | Exit program |
 
-## Implementation Details
+## FAT32 Implementation Details
 
-### FAT32 Structure
-The utility reads and interprets the following FAT32 structures:
-- **Boot Sector (BPB)**: Contains file system metadata
-- **File Allocation Table (FAT)**: Maps cluster chains
-- **Directory Entries**: 32-byte entries describing files and directories
+### Data Structures
 
-### Key Features
-- Maintains current working directory state
-- Supports up to 10 simultaneously open files
-- Cluster chain traversal for large files/directories
-- Properly updates FAT entries when creating/deleting files
-- Creates . and .. entries for new directories
+The implementation handles key FAT32 structures:
+- **Boot Sector** - Contains BPB with cluster size, FAT location, root directory cluster
+- **File Allocation Table** - 32-bit entries mapping cluster chains
+- **Directory Entries** - 32-byte structures with 8.3 names, attributes, cluster pointers
 
-### Error Handling
-- Non-existent files/directories
-- Invalid command arguments
-- File already open/not open
-- Offset out of bounds
-- Non-empty directory removal
-- Name conflicts during creation
+### Cluster Management
 
-## Known Bugs
-- None currently known
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Cluster 5  │────▶│  Cluster 8  │────▶│  Cluster 12 │────▶ EOC
+│  (File data)│     │  (File data)│     │  (File data)│
+└─────────────┘     └─────────────┘     └─────────────┘
+       │                  │                   │
+       ▼                  ▼                   ▼
+   FAT[5] = 8        FAT[8] = 12       FAT[12] = 0x0FFFFFF8
+```
 
-## Considerations
-- Long file name (LFN) entries are skipped (only 8.3 names supported)
-- File/directory names are converted to uppercase internally
-- The program requires read-write access to the image file
+## Testing
 
+Tested on Linux (Ubuntu/Debian) with various FAT32 images. The utility correctly:
+- Reads existing files and directories
+- Creates new files with proper cluster allocation
+- Extends files when writing beyond current size
+- Reclaims clusters on file deletion
+- Maintains directory structure integrity
